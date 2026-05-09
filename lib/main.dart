@@ -7,26 +7,58 @@ void main() {
   runApp(const ZenithApp());
 }
 
-class ZenithApp extends StatelessWidget {
+class ZenithApp extends StatefulWidget {
   const ZenithApp({super.key});
+
+  @override
+  State<ZenithApp> createState() => _ZenithAppState();
+}
+
+class _ZenithAppState extends State<ZenithApp> {
+  ThemeMode _themeMode = ThemeMode.light;
+
+  void _toggleTheme() {
+    setState(() {
+      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Zenith News',
       debugShowCheckedModeBanner: false,
+      themeMode: _themeMode,
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        scrollbars: false,
+      ),
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF000080)),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF000080),
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
         fontFamily: 'SF Pro Display',
+        scaffoldBackgroundColor: Colors.white,
       ),
-      home: const HomeScreen(),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF000080),
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+        fontFamily: 'SF Pro Display',
+        scaffoldBackgroundColor: const Color(0xFF0F0F12),
+      ),
+      home: HomeScreen(onThemeToggle: _toggleTheme, isDarkMode: _themeMode == ThemeMode.dark),
     );
   }
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback onThemeToggle;
+  final bool isDarkMode;
+  const HomeScreen({super.key, required this.onThemeToggle, required this.isDarkMode});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -85,6 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  int _currentIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -108,20 +142,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.black,
+                    color: widget.isDarkMode ? Colors.white : Colors.black,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.abc, color: Colors.white), // Placeholder for logo
+                  child: Icon(Icons.abc, color: widget.isDarkMode ? Colors.black : Colors.white), // Placeholder for logo
                 ),
                 const SizedBox(width: 15),
                 Expanded(
                   child: TextField(
+                    style: TextStyle(color: widget.isDarkMode ? Colors.white : Colors.black),
                     decoration: InputDecoration(
                       hintText: 'Search Stories',
                       hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       filled: true,
-                      fillColor: Colors.grey[100],
+                      fillColor: widget.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.grey[100],
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide.none,
@@ -131,24 +166,41 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(width: 15),
-                const Icon(Icons.nightlight_round, color: Colors.grey),
+                IconButton(
+                  onPressed: widget.onThemeToggle,
+                  icon: Icon(
+                    widget.isDarkMode ? Icons.wb_sunny_rounded : Icons.nightlight_round,
+                    color: widget.isDarkMode ? Colors.yellow : Colors.grey,
+                  ),
+                ),
               ],
             ),
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF000080),
-        unselectedItemColor: Colors.grey,
-        currentIndex: 0,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'HOME'),
-          BottomNavigationBarItem(icon: Icon(Icons.play_circle_outline), label: 'SHORTS'),
-          BottomNavigationBarItem(icon: Icon(Icons.rss_feed), label: 'FEED'),
-          BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: 'CATEGORY'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'SETTINGS'),
-        ],
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.fromLTRB(25, 0, 25, 30),
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+        decoration: BoxDecoration(
+          color: widget.isDarkMode ? const Color(0xFF1A1A1F) : Colors.black,
+          borderRadius: BorderRadius.circular(30),
+          border: widget.isDarkMode ? Border.all(color: Colors.white10) : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(0, Icons.home_rounded, 'Home'),
+            _buildNavItem(1, Icons.grid_view_rounded, 'Category'),
+            _buildNavItem(2, Icons.favorite_rounded, 'Fav'),
+          ],
+        ),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -314,41 +366,87 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     );
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.bottom(20),
+                  child: Container(
+                    margin: const EdgeInsets.bottom(20),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(widget.isDarkMode ? 0.2 : 0.04),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                      border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.grey[100]!),
+                    ),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(15),
-                          child: Image.network(item.imageUrl, width: 100, height: 100, fit: BoxFit.cover),
+                        Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Image.network(item.imageUrl, width: 100, height: 100, fit: BoxFit.cover),
+                            ),
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: item.isSaved ? const Color(0xFF000080) : Colors.black.withOpacity(0.3),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  item.isSaved ? Icons.bookmark : Icons.bookmark_border,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(width: 15),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                '${item.category} • ${item.date}',
-                                style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF000080).withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  item.category.toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Color(0xFF000080),
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
                               ),
-                              const SizedBox(height: 5),
+                              const SizedBox(height: 8),
                               Text(
                                 item.title,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, height: 1.2),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 5),
+                              const SizedBox(height: 6),
                               Text(
                                 item.summary,
-                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                style: TextStyle(color: Colors.grey[600], fontSize: 11, height: 1.4),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(width: 5),
                       ],
                     ),
                   ),
@@ -357,6 +455,32 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    bool isActive = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isActive ? Colors.white : Colors.grey,
+            size: 26,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: isActive ? Colors.white : Colors.grey,
+              fontSize: 10,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -369,7 +493,6 @@ class ArticleDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -414,9 +537,9 @@ class ArticleDetailScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: Container(
               padding: const EdgeInsets.all(25),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(30),
                   topRight: Radius.circular(30),
                 ),
@@ -478,12 +601,12 @@ class ArticleDetailScreen extends StatelessWidget {
                   const SizedBox(height: 30),
                   Text(
                     news.summary,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF333333)),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.titleLarge?.color),
                   ),
                   const SizedBox(height: 20),
                   Text(
                     news.content,
-                    style: TextStyle(fontSize: 16, height: 1.8, color: Colors.grey[800]),
+                    style: TextStyle(fontSize: 16, height: 1.8, color: Theme.of(context).textTheme.bodyMedium?.color),
                   ),
                   const SizedBox(height: 100),
                 ],
