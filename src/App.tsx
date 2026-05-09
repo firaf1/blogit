@@ -16,41 +16,21 @@ import {
   Rss,
   LayoutGrid,
   Settings,
-  Heart
+  Heart,
+  X
 } from 'lucide-react';
 import { Story, FeaturedStory, NewsItem } from './types';
+import { CATEGORIES, STORIES, FEATURED_STORIES, BREAKING_NEWS } from './data';
 
 export default function App() {
-  const [categories, setCategories] = useState<string[]>([]);
-  const [stories, setStories] = useState<Story[]>([]);
-  const [featured, setFeatured] = useState<FeaturedStory[]>([]);
-  const [breaking, setBreaking] = useState<NewsItem[]>([]);
+  const [categories, setCategories] = useState<string[]>(CATEGORIES);
+  const [stories, setStories] = useState<Story[]>(STORIES);
+  const [featured, setFeatured] = useState<FeaturedStory[]>(FEATURED_STORIES);
+  const [breaking, setBreaking] = useState<NewsItem[]>(BREAKING_NEWS);
   const [activeCategory, setActiveCategory] = useState('All News');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [cats, strs, feat, brk] = await Promise.all([
-          fetch('/api/news/categories').then(res => res.json()),
-          fetch('/api/news/stories').then(res => res.json()),
-          fetch('/api/news/featured').then(res => res.json()),
-          fetch('/api/news/breaking').then(res => res.json()),
-        ]);
-        setCategories(cats);
-        setStories(strs);
-        setFeatured(feat);
-        setBreaking(brk);
-      } catch (error) {
-        console.error('Data sync failed:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
 
   // Auto-scroll logic
   useEffect(() => {
@@ -109,49 +89,63 @@ export default function App() {
                 <img src={selectedNews.imageUrl} alt={selectedNews.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 <button 
                   onClick={() => setSelectedNews(null)}
-                  className="absolute top-6 right-6 w-10 h-10 bg-black/20 backdrop-blur-xl rounded-full flex items-center justify-center text-white border border-white/20"
+                  className="absolute top-6 right-6 w-12 h-12 bg-black/40 backdrop-blur-xl rounded-full flex items-center justify-center text-white border border-white/20 shadow-xl hover:bg-black/60 transition-all z-10"
                 >
-                  <Settings size={20} className="rotate-45" />
+                  <X size={24} />
                 </button>
               </div>
 
               <div className="p-8 overflow-y-auto">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="bg-indigo-50 text-[#000080] text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                  <span className="bg-indigo-50 text-[#000080] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
                     {selectedNews.category}
                   </span>
-                  <span className="text-slate-400 text-sm font-bold">{selectedNews.date}</span>
+                  <span className="text-slate-400 text-xs font-bold">{selectedNews.date}</span>
                 </div>
                 
-                <h2 className="text-3xl font-black leading-tight mb-6 text-slate-900 tracking-tight">
+                <h2 className="text-3xl font-black leading-tight mb-8 text-slate-900 tracking-tight">
                   {selectedNews.title}
                 </h2>
+
+                <div className="flex items-center gap-4 mb-10 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <img 
+                    src={selectedNews.authorAvatar || `https://i.pravatar.cc/150?u=${selectedNews.author}`} 
+                    alt={selectedNews.author} 
+                    className="w-12 h-12 rounded-full border-2 border-white shadow-sm" 
+                  />
+                  <div className="flex-1">
+                    <p className="font-bold text-slate-900 leading-tight text-base">{selectedNews.author || 'Zenith Editorial'}</p>
+                    <p className="text-xs text-slate-500 font-medium italic">Verified Contributor</p>
+                  </div>
+                  <button className="px-5 py-2 bg-black text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-colors shadow-sm">
+                    Follow
+                  </button>
+                </div>
                 
-                <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed space-y-4">
-                  <p className="text-lg font-medium text-slate-700 italic border-l-4 border-[#000080] pl-4">
+                <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed space-y-6">
+                  <p className="text-xl font-bold text-slate-800 bg-slate-50 border-l-4 border-[#000080] p-6 rounded-r-2xl">
                     {selectedNews.summary}
                   </p>
-                  <p>
-                    LOREM IPSUM DOLOR SIT AMET, CONSECTETUR ADIPISCING ELIT. SED DO EIUSMOD TEMPOR INCIDIDUNT UT LABORE ET DOLORE MAGNA ALIQUA. UT ENIM AD MINIM VENIAM, QUIS NOSTRUD EXERCITATION ULLAMCO LABORIS NISI UT ALIQUIP EX EA COMMODO CONSEQUAT.
+                  <p className="text-lg leading-relaxed text-slate-700">
+                    {selectedNews.content || "LOREM IPSUM DOLOR SIT AMET, CONSECTETUR ADIPISCING ELIT. SED DO EIUSMOD TEMPOR INCIDIDUNT UT LABORE ET DOLORE MAGNA ALIQUA. UT ENIM AD MINIM VENIAM, QUIS NOSTRUD EXERCITATION ULLAMCO LABORIS NISI UT ALIQUIP EX EA COMMODO CONSEQUAT."}
                   </p>
-                  <p>
+                  <p className="text-lg leading-relaxed text-slate-700">
                     DUIS AUTE IRURE DOLOR IN REPREHENDERIT IN VOLUPTATE VELIT ESSE CILLUM DOLORE EU FUGIAT NULLA PARIATUR. EXCEPTEUR SINT OCCAECAT CUPIDATAT NON PROIDENT, SUNT IN CULPA QUI OFFICIA DESERUNT MOLLIT ANIM ID EST LABORUM.
                   </p>
                 </div>
 
-                <div className="mt-10 flex items-center justify-between pt-8 border-t border-slate-100">
+                <div className="mt-12 flex items-center justify-between pt-8 border-t border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-200 rounded-full" />
-                    <div>
-                      <p className="text-sm font-black">Zenith Editorial</p>
-                      <p className="text-xs text-slate-400">Senior News Editor</p>
-                    </div>
+                    <button className="flex items-center gap-2 px-6 py-3 bg-[#000080] text-white rounded-2xl font-bold shadow-lg shadow-blue-900/20 hover:scale-105 transition-transform active:scale-95">
+                      <Heart size={20} fill="white" />
+                      <span>Recommend</span>
+                    </button>
                   </div>
                   <div className="flex items-center gap-4">
-                    <button className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-[#000080] hover:text-white transition-all">
+                    <button className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-[#000080] hover:text-white transition-all shadow-sm">
                       <Share2 size={20} />
                     </button>
-                    <button className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-[#000080] hover:text-white transition-all">
+                    <button className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-[#000080] hover:text-white transition-all shadow-sm">
                       <Bookmark size={20} />
                     </button>
                   </div>

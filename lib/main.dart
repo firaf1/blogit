@@ -305,14 +305,147 @@ class _HomeScreenState extends State<HomeScreen> {
               itemCount: filteredNews.length,
               itemBuilder: (context, index) {
                 final item = filteredNews[index];
-                return Padding(
-                  padding: const EdgeInsets.bottom(20),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ArticleDetailScreen(news: item),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.bottom(20),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: Image.network(item.imageUrl, width: 100, height: 100, fit: BoxFit.cover),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${item.category} • ${item.date}',
+                                style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                item.title,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                item.summary,
+                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ArticleDetailScreen extends StatelessWidget {
+  final NewsItem news;
+  const ArticleDetailScreen({super.key, required this.news});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 400,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Image.network(news.imageUrl, fit: BoxFit.cover),
+            ),
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CircleAvatar(
+                backgroundColor: Colors.black/30,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CircleAvatar(
+                  backgroundColor: Colors.black/30,
+                  child: IconButton(
+                    icon: const Icon(Icons.share, color: Colors.white, size: 20),
+                    onPressed: () {},
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CircleAvatar(
+                  backgroundColor: Colors.black/30,
+                  child: IconButton(
+                    icon: const Icon(Icons.bookmark_border, color: Colors.white, size: 20),
+                    onPressed: () {},
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.all(25),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF000080),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      news.category.toUpperCase(),
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    news.title,
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, height: 1.2),
+                  ),
+                  const SizedBox(height: 25),
+                  Row(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
-                        child: Image.network(item.imageUrl, width: 100, height: 100, fit: BoxFit.cover),
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundImage: NetworkImage(news.authorAvatar),
                       ),
                       const SizedBox(width: 15),
                       Expanded(
@@ -320,33 +453,44 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${item.category} • ${item.date}',
-                              style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(
-                              item.title,
+                              news.author,
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 5),
                             Text(
-                              item.summary,
-                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                              'Verified Author • ${news.date}',
+                              style: const TextStyle(color: Colors.grey, fontSize: 12),
                             ),
                           ],
                         ),
                       ),
+                      ElevatedButton(
+                        onPressed: () {},
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                        ),
+                        child: const Text('Follow', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
                     ],
                   ),
-                );
-              },
+                  const SizedBox(height: 30),
+                  Text(
+                    news.summary,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF333333)),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    news.content,
+                    style: TextStyle(fontSize: 16, height: 1.8, color: Colors.grey[800]),
+                  ),
+                  const SizedBox(height: 100),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

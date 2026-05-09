@@ -1,6 +1,6 @@
 {
   "name": "Zenith Productivity Hub",
-  "description": "A high-performance full-stack dashboard with a Flutter-inspired UI and Node.js backend integrated logic.",
+  "description": "A high-performance news dashboard with a Flutter-inspired UI and smooth animations.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

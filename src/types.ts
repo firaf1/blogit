@@ -20,4 +20,7 @@ export interface NewsItem {
   date: string;
   imageUrl: string;
   isSaved: boolean;
+  author?: string;
+  authorAvatar?: string;
+  content?: string;
 }

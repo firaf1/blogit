@@ -43,6 +43,9 @@ class NewsItem {
   final String date;
   final String imageUrl;
   final bool isSaved;
+  final String author;
+  final String authorAvatar;
+  final String content;
 
   NewsItem({
     required this.id,
@@ -52,6 +55,9 @@ class NewsItem {
     required this.date,
     required this.imageUrl,
     required this.isSaved,
+    required this.author,
+    required this.authorAvatar,
+    required this.content,
   });
 
   factory NewsItem.fromJson(Map<String, dynamic> json) {
@@ -63,6 +69,9 @@ class NewsItem {
       date: json['date'],
       imageUrl: json['imageUrl'],
       isSaved: json['isSaved'],
+      author: json['author'] ?? 'Anonymous',
+      authorAvatar: json['authorAvatar'] ?? 'https://i.pravatar.cc/150?u=news',
+      content: json['content'] ?? 'No content available.',
     );
   }
 }
