@@ -24,4 +24,5 @@ export interface NewsItem {
   author?: string;
   authorAvatar?: string;
   content?: string;
+  views?: number;
 }

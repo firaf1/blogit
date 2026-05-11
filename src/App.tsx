@@ -18,17 +18,22 @@ import {
   LayoutGrid,
   Settings,
   Heart,
-  X
+  X,
+  Eye
 } from 'lucide-react';
 import { Story, FeaturedStory, NewsItem } from './types';
 import { CATEGORIES, STORIES, FEATURED_STORIES, BREAKING_NEWS } from './data';
 import { apiService } from './services/apiService';
+import { incrementArticleView, getArticleViewCount, getMultipleArticleViewCounts } from './lib/firebase';
 
 export default function App() {
   const [categories, setCategories] = useState<string[]>(['All News']);
   const [stories, setStories] = useState<Story[]>([]);
   const [featured, setFeatured] = useState<FeaturedStory[]>([]);
   const [breaking, setBreaking] = useState<NewsItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<NewsItem[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All News');
   const [loading, setLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -36,6 +41,17 @@ export default function App() {
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
   const [currentTab, setCurrentTab] = useState('Home');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const initData = async () => {
@@ -47,7 +63,18 @@ export default function App() {
         ]);
         if (cats) setCategories(cats);
         if (home.featured.length > 0) setFeatured(home.featured);
-        if (home.breaking.length > 0) setBreaking(home.breaking);
+        if (home.breaking.length > 0) {
+          setBreaking(home.breaking);
+          
+          // Fetch views for the breaking list
+          const ids = home.breaking.map(b => String(b.id));
+          getMultipleArticleViewCounts(ids).then(viewsMap => {
+            setBreaking(current => current.map(item => ({
+              ...item,
+              views: viewsMap[String(item.id)] || 0
+            })));
+          });
+        }
       } catch (err) {
         console.error("API Error:", err);
       } finally {
@@ -92,12 +119,45 @@ export default function App() {
   const filteredFeatured = featured.filter(item => activeCategory === 'All News' || item.category === activeCategory);
   const displayFeatured = filteredFeatured.length > 0 ? filteredFeatured : featured;
 
+  const authors = ['All Authors', ...new Set(breaking.map(item => item.author).filter(Boolean) as string[])];
+
+  const filteredBreaking = breaking.filter(news => {
+    const matchesCategory = activeCategory === 'All News' || news.category === activeCategory;
+    const matchesSearch = news.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         news.summary.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    if (query.trim().length > 1) {
+      const matches = breaking.filter(item => 
+        item.title.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 5);
+      setSuggestions(matches);
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
   const handleSelectNews = async (news: NewsItem) => {
     setSelectedNews(news);
     try {
-      const fullDetail = await apiService.getBlogDetail(news.id);
+      // Background increment
+      incrementArticleView(String(news.id));
+      
+      const [fullDetail, views] = await Promise.all([
+        apiService.getBlogDetail(news.id),
+        getArticleViewCount(String(news.id))
+      ]);
+      
       if (fullDetail) {
-        setSelectedNews(fullDetail);
+        setSelectedNews({ ...fullDetail, views: views || (news.views || 0) + 1 });
+      } else {
+        setSelectedNews({ ...news, views: views || (news.views || 0) + 1 });
       }
     } catch (err) {
       console.error("Error fetching detail:", err);
@@ -124,7 +184,7 @@ export default function App() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative aspect-video">
-                <img src={selectedNews.imageUrl} alt={selectedNews.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img src={selectedNews.imageUrl} alt={selectedNews.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" loading="lazy" />
                 <button 
                   onClick={() => setSelectedNews(null)}
                   className="absolute top-6 left-6 w-12 h-12 bg-black/40 backdrop-blur-xl rounded-full flex items-center justify-center text-white border border-white/20 shadow-xl hover:bg-black/60 transition-all z-20"
@@ -139,59 +199,70 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="p-8 overflow-y-auto">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="bg-indigo-50 text-[#000080] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
-                    {selectedNews.category}
-                  </span>
-                  <span className="text-slate-400 text-xs font-bold">{selectedNews.date}</span>
-                </div>
-                
-                <h2 className="text-3xl font-black leading-tight mb-8 text-slate-900 tracking-tight">
-                  {selectedNews.title}
-                </h2>
-
-                <div className={`flex items-center gap-4 mb-10 p-4 ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'} rounded-2xl border`}>
-                  <img 
-                    src={selectedNews.authorAvatar || `https://i.pravatar.cc/150?u=${selectedNews.author}`} 
-                    alt={selectedNews.author} 
-                    className="w-12 h-12 rounded-full border-2 border-white/10 shadow-sm" 
-                  />
-                  <div className="flex-1">
-                    <p className={`font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'} leading-tight text-base`}>{selectedNews.author || 'OnePlus Editorial'}</p>
-                    <p className="text-xs text-slate-500 font-medium italic">Verified Contributor</p>
-                  </div>
-                  <button className="px-5 py-2 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 transition-colors shadow-sm">
-                    Follow
-                  </button>
-                </div>
-                
-                <div className={`prose prose-slate max-w-none ${isDarkMode ? 'text-slate-300' : 'text-slate-600'} leading-relaxed space-y-6`}>
-                  <p className={`text-xl font-bold ${isDarkMode ? 'text-white bg-white/5' : 'text-slate-800 bg-slate-50'} border-l-4 border-[#000080] p-6 rounded-r-2xl`}>
-                    {selectedNews.summary}
-                  </p>
-                  <p className={`text-lg leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {selectedNews.content || "LOREM IPSUM DOLOR SIT AMET, CONSECTETUR ADIPISCING ELIT. SED DO EIUSMOD TEMPOR INCIDIDUNT UT LABORE ET DOLORE MAGNA ALIQUA. UT ENIM AD MINIM VENIAM, QUIS NOSTRUD EXERCITATION ULLAMCO LABORIS NISI UT ALIQUIP EX EA COMMODO CONSEQUAT."}
-                  </p>
-                  <p className={`text-lg leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                    DUIS AUTE IRURE DOLOR IN REPREHENDERIT IN VOLUPTATE VELIT ESSE CILLUM DOLORE EU FUGIAT NULLA PARIATUR. EXCEPTEUR SINT OCCAECAT CUPIDATAT NON PROIDENT, SUNT IN CULPA QUI OFFICIA DESERUNT MOLLIT ANIM ID EST LABORUM.
-                  </p>
-                </div>
-
-                <div className="mt-12 flex items-center justify-between pt-8 border-t border-slate-100">
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-8 flex flex-col gap-6">
                   <div className="flex items-center gap-3">
-                    <button className="flex items-center gap-2 px-6 py-3 bg-[#000080] text-white rounded-2xl font-bold shadow-lg shadow-blue-900/20 hover:scale-105 transition-transform active:scale-95">
-                      <Heart size={20} fill="white" />
-                      <span>Recommend</span>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'bg-white/10 text-white' : 'bg-indigo-50 text-[#000080]'}`}>
+                      {selectedNews.category}
+                    </span>
+                    <span className="text-slate-400 text-xs font-bold">{selectedNews.date}</span>
+                    <div className="flex items-center gap-1.5 ml-auto text-slate-400">
+                      <Eye size={14} />
+                      <span className="text-xs font-bold">{selectedNews.views || 0} views</span>
+                    </div>
+                  </div>
+                  
+                  <h2 className={`text-3xl font-black leading-tight tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                    {selectedNews.title}
+                  </h2>
+
+                  <div className={`flex items-center gap-4 p-4 ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'} rounded-2xl border`}>
+                    <img 
+                      src={selectedNews.authorAvatar || `https://i.pravatar.cc/150?u=${selectedNews.author}`} 
+                      alt={selectedNews.author} 
+                      className="w-12 h-12 rounded-full border-2 border-white/10 shadow-sm" 
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                    />
+                    <div className="flex-1">
+                      <p className={`font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'} leading-tight text-base`}>{selectedNews.author || 'Editorial Team'}</p>
+                      <p className="text-xs text-slate-500 font-medium italic">Verified Contributor</p>
+                    </div>
+                    <button className="px-5 py-2 bg-[#000080] text-white text-xs font-bold rounded-xl hover:bg-black transition-colors shadow-sm">
+                      Follow
                     </button>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <button className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-[#000080] hover:text-white transition-all shadow-sm">
-                      <Share2 size={20} />
-                    </button>
-                    <button className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-[#000080] hover:text-white transition-all shadow-sm">
-                      <Bookmark size={20} />
-                    </button>
+                  
+                  <div className={`prose prose-slate max-w-none ${isDarkMode ? 'prose-invert' : ''}`}>
+                    {/* Lead section (Summary) */}
+                    <div className={`text-xl font-bold ${isDarkMode ? 'text-white bg-white/5' : 'text-slate-800 bg-slate-50'} border-l-4 border-[#000080] p-6 rounded-r-2xl mb-8`}>
+                      {selectedNews.summary}
+                    </div>
+
+                    {/* Main Content Body */}
+                    <div 
+                      className="text-lg leading-relaxed space-y-4"
+                      dangerouslySetInnerHTML={{ 
+                        __html: selectedNews.content ? selectedNews.content.replace(/&nbsp;/g, ' ') : "No content available" 
+                      }}
+                    />
+                  </div>
+
+                  <div className="mt-6 flex items-center justify-between pt-8 border-t border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <button className="flex items-center gap-2 px-6 py-3 bg-[#000080] text-white rounded-2xl font-bold shadow-lg shadow-blue-900/20 hover:scale-105 transition-transform active:scale-95">
+                        <Heart size={20} fill="white" />
+                        <span>Recommend</span>
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <button className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-[#000080] hover:text-white transition-all shadow-sm">
+                        <Share2 size={20} />
+                      </button>
+                      <button className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-[#000080] hover:text-white transition-all shadow-sm">
+                        <Bookmark size={20} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -210,15 +281,73 @@ export default function App() {
           </div>
         </div>
 
-        <div className="relative flex-1 group">
+        <div className="relative flex-1 group" ref={searchRef}>
           <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#000080]">
             <Search size={18} />
           </div>
           <input 
             type="text" 
             placeholder="Search Stories"
-            className={`w-full ${isDarkMode ? 'bg-white/5 text-white' : 'bg-[#f2f2f7] text-black'} py-2.5 pl-11 pr-4 rounded-full outline-none focus:ring-2 focus:ring-[#000080]/10 transition-all font-medium text-sm`}
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onFocus={() => searchQuery.trim().length > 1 && setShowSuggestions(true)}
+            className={`w-full ${isDarkMode ? 'bg-white/5 text-white' : 'bg-[#f2f2f7] text-black'} py-2.5 pl-11 pr-11 rounded-full outline-none focus:ring-2 focus:ring-[#000080]/10 transition-all font-medium text-sm`}
           />
+          
+          {searchQuery && (
+            <button 
+              onClick={() => {
+                setSearchQuery('');
+                setShowSuggestions(false);
+              }}
+              className="absolute inset-y-0 right-4 flex items-center text-slate-400 hover:text-slate-600"
+            >
+              <X size={16} />
+            </button>
+          )}
+          
+          {/* Suggestions Dropdown */}
+          <AnimatePresence>
+            {showSuggestions && suggestions.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className={`absolute top-full left-0 right-0 mt-2 rounded-2xl shadow-2xl overflow-hidden z-[60] border ${
+                  isDarkMode ? 'bg-[#1a1a1f] border-white/10' : 'bg-white border-slate-100'
+                }`}
+              >
+                {suggestions.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      handleSelectNews(item);
+                      setShowSuggestions(false);
+                      setSearchQuery(item.title);
+                    }}
+                    className={`w-full px-5 py-3 text-left hover:bg-indigo-50/50 transition-colors flex items-center gap-3 border-b last:border-0 ${
+                      isDarkMode ? 'border-white/5 hover:bg-white/5' : 'border-slate-50'
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
+                      <img 
+                        src={item.imageUrl} 
+                        alt="" 
+                        className="w-full h-full object-cover" 
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-bold truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{item.title}</p>
+                      <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{item.category}</p>
+                    </div>
+                    <ChevronRight size={14} className="text-slate-300" />
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <button 
@@ -281,6 +410,7 @@ export default function App() {
                       alt="Featured" 
                       className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                       referrerPolicy="no-referrer"
+                      loading="lazy"
                     />
                     <div className="absolute top-4 right-4">
                       <div className={`${isDarkMode ? 'bg-black/40 text-white' : 'bg-white/40 text-slate-900'} backdrop-blur-xl rounded-full px-4 py-2 text-sm font-black flex items-center gap-2 border border-white/40 shadow-lg`}>
@@ -316,7 +446,7 @@ export default function App() {
 
               <div className="space-y-8">
                 <AnimatePresence mode="popLayout">
-                  {breaking.filter(news => activeCategory === 'All News' || news.category === activeCategory).map((news) => (
+                  {filteredBreaking.map((news) => (
                     <motion.div 
                       key={news.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -333,6 +463,7 @@ export default function App() {
                             alt={news.title} 
                             className="w-full h-full object-cover"
                             referrerPolicy="no-referrer"
+                            loading="lazy"
                           />
                           <div className="absolute top-1.5 right-1.5">
                              <button 
@@ -353,6 +484,10 @@ export default function App() {
                               {news.category}
                             </span>
                             <span className="text-[9px] font-bold text-slate-400">{news.date}</span>
+                            <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 ml-auto">
+                              <Eye size={10} />
+                              <span>{news.views || 0}</span>
+                            </div>
                           </div>
                           <h3 className={`font-bold text-base leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'} group-hover:text-[#000080] transition-colors line-clamp-2 tracking-tight`}>
                             {news.title}

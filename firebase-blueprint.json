@@ -1,0 +1,31 @@
+{
+  "entities": {
+    "Analytics": {
+      "title": "Article Analytics",
+      "description": "Tracks engagement metrics for news articles",
+      "type": "object",
+      "properties": {
+        "articleId": {
+          "type": "string",
+          "description": "Unique identifier for the article"
+        },
+        "viewCount": {
+          "type": "integer",
+          "description": "Number of times the article has been viewed"
+        },
+        "lastViewedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the most recent view"
+        }
+      },
+      "required": ["articleId", "viewCount", "lastViewedAt"]
+    }
+  },
+  "firestore": {
+    "articleAnalytics/{articleId}": {
+      "schema": "Analytics",
+      "description": "Stores analytics data for each article indexed by its ID"
+    }
+  }
+}

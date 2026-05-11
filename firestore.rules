@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Article Analytics
+    match /articleAnalytics/{articleId} {
+      function isValidAnalytics(data) {
+        return data.articleId is string && 
+               data.articleId.size() <= 128 &&
+               data.viewCount is int &&
+               data.viewCount >= 0 &&
+               data.lastViewedAt is timestamp;
+      }
+
+      allow get: if true;
+      allow list: if true;
+      
+      allow create: if isValidAnalytics(request.resource.data) && 
+                      request.resource.data.viewCount == 1 &&
+                      request.resource.data.lastViewedAt == request.time &&
+                      request.resource.data.articleId == articleId;
+                      
+      allow update: if isValidAnalytics(request.resource.data) &&
+                      request.resource.data.viewCount == resource.data.viewCount + 1 &&
+                      request.resource.data.lastViewedAt == request.time &&
+                      request.resource.data.articleId == resource.data.articleId &&
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount', 'lastViewedAt']);
+    }
+  }
+}
