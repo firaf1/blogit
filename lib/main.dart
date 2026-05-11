@@ -4,17 +4,17 @@ import 'models/news_model.dart';
 import 'services/news_service.dart';
 
 void main() {
-  runApp(const ZenithApp());
+  runApp(const OnePlusApp());
 }
 
-class ZenithApp extends StatefulWidget {
-  const ZenithApp({super.key});
+class OnePlusApp extends StatefulWidget {
+  const OnePlusApp({super.key});
 
   @override
-  State<ZenithApp> createState() => _ZenithAppState();
+  State<OnePlusApp> createState() => _OnePlusAppState();
 }
 
-class _ZenithAppState extends State<ZenithApp> {
+class _OnePlusAppState extends State<OnePlusApp> {
   ThemeMode _themeMode = ThemeMode.light;
 
   void _toggleTheme() {
@@ -26,7 +26,7 @@ class _ZenithAppState extends State<ZenithApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Zenith News',
+      title: 'OnePlus News',
       debugShowCheckedModeBanner: false,
       themeMode: _themeMode,
       scrollBehavior: const MaterialScrollBehavior().copyWith(
@@ -128,6 +128,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final filteredNews = _allBreaking.where((item) => 
       _activeCategory == 'All News' || item.category == _activeCategory
     ).toList();
+    final filteredFeatured = _featured.where((item) => 
+      _activeCategory == 'All News' || item.category == _activeCategory
+    ).toList();
+    final displayFeatured = filteredFeatured.isNotEmpty ? filteredFeatured : _featured;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -139,13 +143,43 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: widget.isDarkMode ? Colors.white : Colors.black,
+                    color: widget.isDarkMode ? Colors.white : const Color(0xFF000080),
                     borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: widget.isDarkMode ? Colors.white.withOpacity(0.1) : const Color(0xFF000080).withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
                   ),
-                  child: Icon(Icons.abc, color: widget.isDarkMode ? Colors.black : Colors.white), // Placeholder for logo
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '1',
+                        style: TextStyle(
+                          color: widget.isDarkMode ? Colors.black : Colors.white, 
+                          fontWeight: FontWeight.black, 
+                          fontSize: 18
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          '+',
+                          style: TextStyle(
+                            color: widget.isDarkMode ? Colors.black : Colors.white, 
+                            fontWeight: FontWeight.bold, 
+                            fontSize: 10
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 15),
                 Expanded(
@@ -202,260 +236,347 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Categories
-            SizedBox(
-              height: 50,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: _categories.length,
-                itemBuilder: (context, index) {
-                  final cat = _categories[index];
-                  bool isActive = _activeCategory == cat;
-                  return GestureDetector(
-                    onTap: () => setState(() => _activeCategory = cat),
-                    child: Container(
-                      margin: const EdgeInsets.right(20),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isActive ? const Color(0xFF000080) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        cat,
-                        style: TextStyle(
-                          color: isActive ? Colors.white : Colors.grey,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-            
-            // Story Circles
-            SizedBox(
-              height: 100,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: _stories.length,
-                itemBuilder: (context, index) {
-                  return Container(
-                    margin: const EdgeInsets.right(15),
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF000080), width: 2),
-                    ),
-                    padding: const EdgeInsets.all(2),
-                    child: CircleAvatar(
-                      backgroundImage: NetworkImage(_stories[index].imageUrl),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Featured Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: const Text('Featured Stories', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 15),
-
-            // Featured Carousel
-            SizedBox(
-              height: 250,
-              child: PageView.builder(
-                controller: _featuredController,
-                onPageChanged: (idx) => setState(() => _featuredIndex = idx),
-                itemCount: _featured.length,
-                itemBuilder: (context, index) {
-                  final item = _featured[index];
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30),
-                      image: DecorationImage(
-                        image: NetworkImage(item.imageUrl),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-                        ),
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.title,
-                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+      body: _currentIndex == 0 
+        ? SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Categories
+                SizedBox(
+                  height: 50,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: _categories.length,
+                    itemBuilder: (context, index) {
+                      final cat = _categories[index];
+                      bool isActive = _activeCategory == cat;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _activeCategory = cat;
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          margin: const EdgeInsets.right(15),
+                          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isActive ? const Color(0xFF000080) : (widget.isDarkMode ? Colors.white10 : Colors.grey[100]),
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: isActive ? [
+                              BoxShadow(
+                                color: const Color(0xFF000080).withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ] : null,
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 10),
-            
-            // Indicators
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(_featured.length, (index) => 
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: index == _featuredIndex ? 20 : 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: index == _featuredIndex ? const Color(0xFF000080) : Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4),
+                          child: Center(
+                            child: Text(
+                              cat,
+                              style: TextStyle(
+                                color: isActive ? Colors.white : (widget.isDarkMode ? Colors.grey : Colors.grey[600]),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 25),
-
-            // Breaking News Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text('Breaking News', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  Text('See All', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 15),
-
-            // Breaking News List
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: filteredNews.length,
-              itemBuilder: (context, index) {
-                final item = filteredNews[index];
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ArticleDetailScreen(news: item),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.bottom(20),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(widget.isDarkMode ? 0.2 : 0.04),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                const SizedBox(height: 20),
+                
+                // Story Circles
+                SizedBox(
+                  height: 100,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: _stories.length,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: const EdgeInsets.right(15),
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFF000080), width: 2),
                         ),
-                      ],
-                      border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.grey[100]!),
-                    ),
-                    child: Row(
-                      children: [
-                        Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-                              child: Image.network(item.imageUrl, width: 100, height: 100, fit: BoxFit.cover),
-                            ),
-                            Positioned(
-                              top: 6,
-                              right: 6,
-                              child: Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: item.isSaved ? const Color(0xFF000080) : Colors.black.withOpacity(0.3),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  item.isSaved ? Icons.bookmark : Icons.bookmark_border,
-                                  color: Colors.white,
-                                  size: 14,
-                                ),
-                              ),
-                            ),
-                          ],
+                        padding: const EdgeInsets.all(2),
+                        child: CircleAvatar(
+                          backgroundImage: NetworkImage(_stories[index].imageUrl),
                         ),
-                        const SizedBox(width: 15),
-                        Expanded(
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Featured Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: const Text('Featured Stories', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 15),
+
+                // Featured Carousel
+                SizedBox(
+                  height: 250,
+                  child: PageView.builder(
+                    controller: _featuredController,
+                    onPageChanged: (idx) => setState(() => _featuredIndex = idx),
+                    itemCount: displayFeatured.length,
+                    itemBuilder: (context, index) {
+                      final item = displayFeatured[index];
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 20),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(30),
+                          image: DecorationImage(
+                            image: NetworkImage(item.imageUrl),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(20),
                           child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF000080).withOpacity(0.08),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  item.category.toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Color(0xFF000080),
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
                               Text(
                                 item.title,
-                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, height: 1.2),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                item.summary,
-                                style: TextStyle(color: Colors.grey[600], fontSize: 11, height: 1.4),
+                                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 5),
-                      ],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                
+                // Indicators
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(displayFeatured.length, (index) => 
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: index == _featuredIndex ? 20 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: index == _featuredIndex ? const Color(0xFF000080) : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                     ),
                   ),
-                );
-              },
+                ),
+                const SizedBox(height: 25),
+
+                // Breaking News Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text('Breaking News', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      Text('See All', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 15),
+
+                // Breaking News List
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: filteredNews.length,
+                  itemBuilder: (context, index) {
+                    final item = filteredNews[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ArticleDetailScreen(news: item),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.bottom(15),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(widget.isDarkMode ? 0.2 : 0.03),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                          border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.grey[100]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.network(item.imageUrl, width: 85, height: 85, fit: BoxFit.cover),
+                                ),
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      color: item.isSaved ? const Color(0xFF000080) : Colors.black.withOpacity(0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      item.isSaved ? Icons.bookmark : Icons.bookmark_border,
+                                      color: Colors.white,
+                                      size: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF000080).withOpacity(0.06),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          item.category.toUpperCase(),
+                                          style: const TextStyle(
+                                            color: Color(0xFF000080),
+                                            fontSize: 7,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        item.date,
+                                        style: TextStyle(color: Colors.grey[400], fontSize: 9),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    item.title,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, height: 1.25),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          )
+        : _currentIndex == 1
+            ? Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Explore Categories', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 25),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 15,
+                        mainAxisSpacing: 15,
+                        childAspectRatio: 1.2,
+                      ),
+                      itemCount: _categories.length,
+                      itemBuilder: (context, index) {
+                        final cat = _categories[index];
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _activeCategory = cat;
+                              _currentIndex = 0;
+                            });
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: widget.isDarkMode ? Colors.white.withOpacity(0.05) : const Color(0xFFF8F9FF),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: widget.isDarkMode ? Colors.white10 : const Color(0xFF000080).withOpacity(0.05)),
+                            ),
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF000080).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.grid_view_rounded, color: Color(0xFF000080), size: 20),
+                                ),
+                                Text(
+                                  cat,
+                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              )
+            : Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.bookmark_border, size: 80, color: Colors.grey),
+                    SizedBox(height: 20),
+                    Text('No saved stories yet', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text('Stories you bookmark will appear here', style: TextStyle(color: Colors.grey)),
+                  ],
+                ),
+              ),
     );
   }
 

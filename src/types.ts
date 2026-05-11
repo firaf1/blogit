@@ -10,6 +10,7 @@ export interface FeaturedStory {
   subtitle: string;
   imageUrl: string;
   likes: number;
+  category?: string;
 }
 
 export interface NewsItem {

@@ -1,4 +1,4 @@
-export const CATEGORIES = ["All News", "Tech", "Science", "Entertainment", "Health", "Sports"];
+export const CATEGORIES = ["All News", "Tech", "Science", "Entertainment", "Health", "Sports", "Climate"];
 
 export const STORIES = [
   { id: 1, title: "Temple", imageUrl: "https://picsum.photos/seed/temple/200/200" },
@@ -14,14 +14,16 @@ export const FEATURED_STORIES = [
     title: "MacBook Pro mit M4: Displays liegen im Zeitplan für Launch im Herbst", 
     subtitle: "The next generation of Apple silicon is almost here.",
     imageUrl: "https://picsum.photos/seed/laptop/800/450",
-    likes: 124
+    likes: 124,
+    category: "Tech"
   },
   { 
     id: 2, 
     title: "SpaceX Starship: Preparing for the next big leap in Mars exploration", 
     subtitle: "A giant leap for mankind as testing enters final stages.",
     imageUrl: "https://picsum.photos/seed/mars/800/450",
-    likes: 85
+    likes: 85,
+    category: "Science"
   }
 ];
 

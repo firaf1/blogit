@@ -17,12 +17,14 @@ class FeaturedStory {
   final String title;
   final String imageUrl;
   final int likes;
+  final String category;
 
   FeaturedStory({
     required this.id,
     required this.title,
     required this.imageUrl,
     required this.likes,
+    required this.category,
   });
 
   factory FeaturedStory.fromJson(Map<String, dynamic> json) {
@@ -31,6 +33,7 @@ class FeaturedStory {
       title: json['title'],
       imageUrl: json['imageUrl'],
       likes: json['likes'],
+      category: json['category'] ?? 'All News',
     );
   }
 }
